@@ -1,4 +1,5 @@
 import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { useChecked } from "../providers/CheckedContext";
 
 interface BaseProps {
     white: boolean;
@@ -26,7 +27,16 @@ export const Square = ({ row, col, white }: SquareProps) => {
     const { width } = Dimensions.get("window");
     const squareSize = (width - 15) / 8;
 
-    const backgroundColor = white ? WHITE : BLACK;
+    const context = useChecked();    
+    let backgroundColor = white ? WHITE : BLACK;    
+    const squareId = `${String.fromCharCode(col + 97)}${8 - row}`;
+
+    if (squareId === context.CheckedSquare) {
+        backgroundColor = "rgba(255, 0, 0, 0.4)";
+    } else if (squareId === context.CheckingSquare) {
+        backgroundColor = "rgba(255, 0, 0, 0.4)";
+    }
+
     return (
         <View
             style={{

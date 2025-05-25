@@ -5,6 +5,8 @@ import { Chess } from "chess.js";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from 'react';
 import Chessboard from '../components/chessboard';
+import { CheckedProvider } from '../providers/CheckedContext';
+import { findCheckingPieces, findKingSquare } from '../providers/FindKingSquare';
 
 
 export default function TabTwoScreen() {
@@ -18,7 +20,9 @@ export default function TabTwoScreen() {
     const [capturedByWhite, setCapturedByWhite] = useState<string[]>([]);
     const [capturedByBlack, setCapturedByBlack] = useState<string[]>([]);
     const [isthereanyillegal, setIsthereanyillegal] = useState(false);
-    const [isCheckedByWhite , setIsCheckedByWhite] = useState(false);
+    const [checkedSquare, setCheckedSquare] = useState("");
+    const [checkingSquare, setCheckingSquare] = useState("");
+    const [gameResult, seGameResult] = useState<string | null>();
 
     const movesArray = moves?.split(/\s+/) ?? [];
     const { width } = Dimensions.get("window");
@@ -75,7 +79,8 @@ export default function TabTwoScreen() {
             flexDirection: "row",
             gap: 2,
             width: width / 2,
-            height: 40
+            minHeight: 40,
+            flexWrap: "wrap",
         },
         reloadandillegalmove: {
             position: "relative",
@@ -97,7 +102,14 @@ export default function TabTwoScreen() {
         const isnextmovelegal = isMoveLegal(movestr);
         if (currentMove < movesArray.length && isnextmovelegal) {
             const move = game.move(movestr);
-            isCheckedControl(movestr , move.color);
+            if (game.inCheck()) {
+                setCheckedSquare(findKingSquare(game, game.turn()));
+                setCheckingSquare(findCheckingPieces(movestr));
+            }
+            else {
+                setCheckedSquare("");
+                setCheckingSquare("");
+            }
             setPosition(game.fen());
             setCurrentMove(currentMove + 1);
             if (move.captured) {
@@ -107,10 +119,20 @@ export default function TabTwoScreen() {
                     setCapturedByBlack([...capturedByBlack, move.captured]);
                 }
             }
+            if(game.isGameOver())
+            {
+                if(game.inCheck()) {
+                    const winner = game.turn() === 'w' ? 'Siyahlar' : 'Beyazlar';
+                    seGameResult(`${winner} kazandı 🏆`);
+                }
+                else if (game.isDraw()) {
+                    seGameResult('Oyun berabere 🤝');
+                }
+            }
         }
-        if(!isnextmovelegal)
+        if (!isnextmovelegal && !gameResult)
             setIsthereanyillegal(true);
-        else
+        else if(!gameResult)
             setIsthereanyillegal(false);
     };
 
@@ -119,14 +141,17 @@ export default function TabTwoScreen() {
             const newGame = new Chess();
             setCapturedByBlack([]);
             setCapturedByWhite([]);
+            setCheckedSquare("");
+            setCheckingSquare("");
+            seGameResult(null);
             setIsthereanyillegal(false);
             for (let i = 0; i < currentMove - 1; i++) {
                 const move = newGame.move(movesArray[i])
-                if(move.captured){
-                    if(move.color = "w"){
+                if (move.captured) {
+                    if (move.color = "w") {
                         setCapturedByWhite([...capturedByWhite, move.captured]);
                     }
-                    else{
+                    else {
                         setCapturedByBlack([...capturedByBlack, move.captured])
                     }
                 }
@@ -138,13 +163,8 @@ export default function TabTwoScreen() {
     }
 
     const isMoveLegal = (moveStr: string) => {
-        const moves =  game.moves();
+        const moves = game.moves();
         return moves.includes(moveStr);
-    }
-
-    const isCheckedControl = (move: string , color: string) => {
-        if(move.includes("+"))
-            setIsCheckedByWhite(true);
     }
 
     const pieceImages: Record<string, { w: any; b: any }> = {
@@ -183,6 +203,9 @@ export default function TabTwoScreen() {
         setCapturedByWhite([]);
         setCapturedByBlack([]);
         setIsthereanyillegal(false);
+        setCheckedSquare("");
+        setCheckingSquare("");
+        seGameResult(null);
     }
 
     useEffect(() => {
@@ -218,16 +241,20 @@ export default function TabTwoScreen() {
                     ))}
                 </View>
             </View>
+
             <View style={styles.reloadandillegalmove}>
-                <TouchableOpacity  onPress={resetGame} style={{position: "absolute" , left: 0}}>
+                <TouchableOpacity onPress={resetGame} style={{ position: "absolute", left: 0 }}>
                     <Ionicons name="reload" size={28} color="black" />
                 </TouchableOpacity>
-                <Text style={{color: '#f5f5f5' , fontSize: 20}}>
-                    {isthereanyillegal && `Geçersiz Hamle: ${movesArray[currentMove]}` }
+                <Text style={{ color: '#f5f5f5', fontSize: 20 }}>
+                    {isthereanyillegal && `Geçersiz Hamle: ${movesArray[currentMove]}`}
+                    {gameResult && gameResult}
                 </Text>
-            </View>            
+            </View>
             <View style={{ flex: 1, alignItems: "center", gap: 10, marginTop: 70 }}>
-                <Chessboard fen={position} />
+                <CheckedProvider CheckedSquare={checkedSquare} CheckingSquare={checkingSquare}>
+                    <Chessboard fen={position} />
+                </CheckedProvider>
                 <View style={styles.movesContainer}>
                     <TouchableOpacity style={styles.nextmovebutton} onPress={playPreviousMove}>
                         <Text>{"Back Move"}</Text>

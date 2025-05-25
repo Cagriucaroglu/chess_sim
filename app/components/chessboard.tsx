@@ -17,11 +17,14 @@ export const pieceImages: Record<string, any> = {
     bk: require("../../assets/chesspieces/bk.png"),
 }
 
+interface IChessboardprop {
+    fen: string; 
+}
 
 // const squareSize = 40;
 // const boardSize = squareSize * 8;
 
-const Chessboard = ({ fen }: { fen: string }) => {
+const Chessboard = ({ fen}: IChessboardprop) => {
     const { width } = Dimensions.get("window");
     const boardSize = width - 15;
     const squareSize = boardSize / 8;
@@ -43,7 +46,7 @@ const Chessboard = ({ fen }: { fen: string }) => {
 
     return (
         <View style={styles.container}>
-            <BackGround/>
+            <BackGround />
             {rows.map((row, rowIndex) => {
                 let colIndex = 0;
                 return (
