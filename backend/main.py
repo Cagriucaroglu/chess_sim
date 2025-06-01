@@ -5,6 +5,8 @@ from PIL import Image
 import os
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+from yolo_project.predictor import recognize_all_cells
 
 app = FastAPI()
 
@@ -27,7 +29,7 @@ async def analyze_chess(file: UploadFile = File(...)): # file: UploadFile = File
     os.makedirs("uploaded_images", exist_ok=True)
     with open(temp_path, "wb") as f:
         f.write(contents)
-
+    recognize_all_cells(temp_path)
     # processimage fonksiyonu çağrılcak     
     # processimage(temp_path) gibi
     # processimage'ın bulunduğu hücre çıkartma klasörü backend klasörüne taşınacak       

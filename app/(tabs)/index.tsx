@@ -107,7 +107,8 @@ export default function HomeScreen() {
 
                 const data = await response.json();
                 console.log("API cevabı:", data);
-                setMoveString(data.message);
+                const moves = data.message.join(" ");
+                setMoveString(moves);
             }
             catch (err) {
                 console.error("Apı call", err);
