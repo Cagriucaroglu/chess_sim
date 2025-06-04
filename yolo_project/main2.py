@@ -8,28 +8,38 @@ output_folder = "foundcells"
 os.makedirs(output_folder, exist_ok=True)
 
 def detect_lines(image_path):
-    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    if image is None:
-        print(f"Hata: {image_path} okunamadı.")
-        return [], []
-
+    image = cv2.imread(image_path)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+    gray = cv2.equalizeHist(gray)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    thresh = cv2.adaptiveThreshold(
+        blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+        cv2.THRESH_BINARY_INV, 15, 10
+    )
 
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 75, minLineLength=75, maxLineGap=3)
-    vertical_lines, horizontal_lines = [], []
+    kernel_vert = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 20))
+    kernel_horz = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 1))
 
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            if abs(x1 - x2) < 10:
-                vertical_lines.append((x1, x2))
-            elif abs(y1 - y2) < 10:
-                horizontal_lines.append((y1, y2))
+    vert_lines_img = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_vert)
+    horz_lines_img = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_horz)
 
-    vertical_lines.sort(key=lambda x: x[0])              # soldan sağa
-    horizontal_lines.sort(key=lambda y: y[0], reverse=False)  # yukarıdan aşağıya
+    def extract_lines(bin_img, is_vertical=True):
+        lines = cv2.HoughLinesP(bin_img, 1, np.pi / 180, 100,
+                                minLineLength=120, maxLineGap=3)
+        result = []
+        if lines is not None:
+            for x1, y1, x2, y2 in lines[:, 0]:
+                if is_vertical and abs(x1 - x2) < 10:
+                    result.append((x1, x2))
+                elif not is_vertical and abs(y1 - y2) < 10:
+                    result.append((y1, y2))
+        return result
 
+    vertical_lines = extract_lines(vert_lines_img, is_vertical=True)
+    horizontal_lines = extract_lines(horz_lines_img, is_vertical=False)
+
+    vertical_lines.sort(key=lambda x: x[0])
+    horizontal_lines.sort(key=lambda y: y[0])
     return vertical_lines, horizontal_lines
 
 def group_lines(lines, axis_index, threshold=30):

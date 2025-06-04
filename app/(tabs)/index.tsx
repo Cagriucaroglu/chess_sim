@@ -100,11 +100,10 @@ export default function HomeScreen() {
             } as any);
 
             try {
-                const response = await fetch("http://192.168.1.161:9999/analyze-chess", {
+                const response = await fetch("http://172.20.10.2:9999/analyze-chess", { //http://192.168.1.161:9999/analyze-chess
                     method: 'POST',
                     body: formData
                 });
-
                 const data = await response.json();
                 console.log("API cevabı:", data);
                 const moves = data.message.join(" ");
