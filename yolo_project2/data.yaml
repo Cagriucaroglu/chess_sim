@@ -1,0 +1,5 @@
+path: D:/project/chess_sim/yolo_project2/dataset
+train: images/train
+val: images/val
+nc: 1
+names: ['cell']
