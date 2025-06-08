@@ -3,7 +3,7 @@ import subprocess
 import shutil
 import glob
 import json
-from main2 import process_image  # main2.py aynı klasörde olmalı
+from main2v2 import process_image_v2  # main2.py aynı klasörde olmalı
 import re
 
 
@@ -37,7 +37,8 @@ def recognize_character_from_image(image_path, model_path, class_map):
         f"project=runs/detect",
         f"name=predict_{image_name}",
         "exist_ok=True",
-        "conf=0.25"
+        "conf=0.50",
+        "iou=0.45"
     ], stdout=subprocess.DEVNULL)
 
     txt_path = os.path.join(output_dir, "labels", image_name + ".txt")
@@ -60,11 +61,16 @@ def recognize_all_cells(image_path):
     for f in glob.glob("foundcells/*.png"):
         os.remove(f)
     # 2. Hücreleri kes
-    process_image(image_path, image_index=1)
+    process_image_v2(image_path)
 
     # 3. Sınıf isimlerini yükle
     class_map = load_class_map("classes.txt")
+
     run_name = f"batch_predict"
+    output_dir = os.path.join("runs", "detect", run_name)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    
     foundcells_dir = "foundcells"
     output_dir = os.path.join("runs/detect" , run_name)
     predictions = []
@@ -118,7 +124,7 @@ def recognize_all_cells(image_path):
     return result_json
 
 if __name__ == "__main__":
-    image_path = "games/test1.jfif"
+    image_path = "games/temp.jpg"
     result = recognize_all_cells(image_path)
 
     print("hamleler:")

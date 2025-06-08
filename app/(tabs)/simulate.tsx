@@ -1,9 +1,10 @@
 import { Dimensions, Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Chess } from "chess.js";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Chessboard from '../components/chessboard';
 import { CheckedProvider } from '../providers/CheckedContext';
 import { findCheckingPieces, findKingSquare } from '../providers/FindKingSquare';
@@ -11,8 +12,11 @@ import { findCheckingPieces, findKingSquare } from '../providers/FindKingSquare'
 
 export default function TabTwoScreen() {
 
-    const { moves } = useLocalSearchParams<{ moves: string }>();
+    const { moves, moves2, blackPlayer, whitePlayer } = useLocalSearchParams<{ moves: string, moves2: string, whitePlayer: string, blackPlayer: string }>();
     const backgroundImage = require('../../assets/images/background.png')
+    const whiteplayerImage = require('../../assets/images/white.png')
+    const blackplayerImage = require('../../assets/images/black.png')
+
 
     const [position, setPosition] = useState("start");
     const [currentMove, setCurrentMove] = useState(0);
@@ -25,8 +29,15 @@ export default function TabTwoScreen() {
     const [gameResult, seGameResult] = useState<string | null>();
 
     const movesArray = moves?.split(/\s+/) ?? [];
+    const movesArray2 = moves2?.split(/\s+/) ?? [];
     const { width } = Dimensions.get("window");
     const title = "CHESS - SIM"
+
+    useFocusEffect(
+        React.useCallback(() => {
+            resetGame();
+        }, [moves, moves2, whitePlayer, blackPlayer])
+    );
 
     const styles = StyleSheet.create({
         header: {
@@ -54,6 +65,12 @@ export default function TabTwoScreen() {
             flexDirection: "row",
             gap: 10,
             marginTop: 15
+        },
+        userNamesContainer: {
+            display: "flex",
+            flexDirection: "row",
+            gap: 10,
+            alignItems: "center"
         },
         capturedpiecescontainer: {
             display: "flex",
@@ -85,7 +102,7 @@ export default function TabTwoScreen() {
         reloadandillegalmove: {
             position: "relative",
             left: 0,
-            top: 50,
+            top: 20,
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
@@ -97,9 +114,18 @@ export default function TabTwoScreen() {
         setPosition(game.fen());
     }, [game]);
 
+    useEffect(() => {
+        resetGame();
+    }, [])
+
     const playNextMove = () => {
-        const movestr = movesArray[currentMove];
-        const isnextmovelegal = isMoveLegal(movestr);
+        let movestr = movesArray[currentMove];
+        let isnextmovelegal = isMoveLegal(movestr);
+        if (!isnextmovelegal && !gameResult) {
+            movestr = movesArray2[currentMove];
+            isnextmovelegal = isMoveLegal(movestr);
+        }
+
         if (currentMove < movesArray.length && isnextmovelegal) {
             const move = game.move(movestr);
             if (game.inCheck()) {
@@ -119,9 +145,8 @@ export default function TabTwoScreen() {
                     setCapturedByBlack([...capturedByBlack, move.captured]);
                 }
             }
-            if(game.isGameOver())
-            {
-                if(game.inCheck()) {
+            if (game.isGameOver()) {
+                if (game.inCheck()) {
                     const winner = game.turn() === 'w' ? 'Siyahlar' : 'Beyazlar';
                     seGameResult(`${winner} kazandı 🏆`);
                 }
@@ -132,7 +157,8 @@ export default function TabTwoScreen() {
         }
         if (!isnextmovelegal && !gameResult)
             setIsthereanyillegal(true);
-        else if(!gameResult)
+
+        else if (!gameResult)
             setIsthereanyillegal(false);
     };
 
@@ -218,6 +244,22 @@ export default function TabTwoScreen() {
                 {title}
             </Text>
             <View style={styles.capturedpiecescontainer}>
+                <View style={styles.userNamesContainer}>
+                    <Image
+                        source={blackplayerImage}
+                        resizeMode="contain"
+                    />
+                    <Text>{blackPlayer}</Text>
+                </View>
+                <View style={styles.userNamesContainer}>
+                    <Image
+                        source={whiteplayerImage}
+                        resizeMode="contain"
+                    />
+                    <Text>{whitePlayer}</Text>
+                </View>
+            </View>
+            <View style={styles.capturedpiecescontainer}>
                 <Text style={{ fontSize: 15 }}>Captured By Black:</Text>
                 <Text style={{ fontSize: 15 }}>Captured By White:</Text>
             </View>
@@ -251,7 +293,7 @@ export default function TabTwoScreen() {
                     {gameResult && gameResult}
                 </Text>
             </View>
-            <View style={{ flex: 1, alignItems: "center", gap: 10, marginTop: 70 }}>
+            <View style={{ flex: 1, alignItems: "center", gap: 10, marginTop: 35 }}>
                 <CheckedProvider CheckedSquare={checkedSquare} CheckingSquare={checkingSquare}>
                     <Chessboard fen={position} />
                 </CheckedProvider>
