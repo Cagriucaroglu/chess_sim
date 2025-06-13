@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/ThemedText';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from "expo-router";
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Button, Image, Modal, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
 
@@ -18,14 +18,61 @@ export default function HomeScreen() {
 
     const [tempPhotoResult, setTempPhotoResult] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
+    const { height, width } = Dimensions.get("window");
+    const HEADER_HEIGHT = 619.2; // üstteki sabit yükseklikler
+    const tableHeight = height - HEADER_HEIGHT;
+
+
 
     const styles = StyleSheet.create({
+        tableWrapper: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            padding: 10,    
+        },
+        columnBlock: {
+            flex: 1,
+            marginHorizontal: 5,
+        },
+        tableScroll: {
+            height: tableHeight, // Sabit yükseklik
+            width: width - 15,
+            borderWidth: 1,
+            borderColor: '#ccc',
+            borderRadius: 8,
+            margin: 10,
+        },
+        scrollContent: {
+            padding: 10,
+        },
+        tableHeaderRow: {
+            flexDirection: 'row',
+            backgroundColor: "#e3f2fd", // burada renk eklendi
+            paddingVertical: 6,
+        },
+        tableRow: {
+            flexDirection: 'row',
+            paddingVertical: 4,
+            borderBottomWidth: 1,
+            borderColor: '#ddd',
+        },
+        headerCell: {
+            flex: 1,
+            fontWeight: 'bold',
+            textAlign: 'center',
+        },
+        cell: {
+            flex: 1,
+            textAlign: 'center',
+        },
         body: {
             display: "flex",
             alignItems: "center",
-            flexDirection: "column"
+            flexDirection: "column",
+            backgroundColor: "#e3f2fd", // burada renk eklendi
         },
         titleContainer: {
+            marginTop: 10,
             paddingVertical: 16,
             paddingHorizontal: 8,
             alignItems: "center",
@@ -50,29 +97,30 @@ export default function HomeScreen() {
             elevation: 2,
         },
         stepContainer2: {
-            display: "flex",
             flexDirection: "row",
-            gap: 10,
-            padding: 16,
-            backgroundColor: "#669999",
-            borderRadius: 8,
-            marginBottom: 16,
+            justifyContent: "space-around",
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: 20,
+            backgroundColor: "#e0f7fa",
+            borderRadius: 16,
+            marginBottom: 20,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 2,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            elevation: 3,
         },
         reactLogo: {
-            height: 360,
-            width: 360,
+            height: 300,
+            width:  300,
             top: 5,
             bottom: 0,
             left: 0,
         },
         logobackground: {
             alignItems: "center",
-            height: 360,
+            height: 300,
             backgroundColor: "#EDEDBB",
             width: "100%"
         },
@@ -88,14 +136,28 @@ export default function HomeScreen() {
             alignItems: 'center',
         },
         modalContent: {
-            width: '85%',
-            backgroundColor: 'white',
-            borderRadius: 8,
-            padding: 20,
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 10,
-            elevation: 5,
+            width: '90%',
+            backgroundColor: '#fefefe',
+            borderRadius: 12,
+            padding: 24,
+            shadowColor: '#333',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6,
+        },
+        customButton: {
+            backgroundColor: "#00796b",
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            borderRadius: 10,
+            marginTop: 10,
+        },
+        customButtonText: {
+            color: "white",
+            fontSize: 16,
+            fontWeight: "600",
+            textAlign: "center",
         },
         modalTitle: {
             fontSize: 18,
@@ -126,6 +188,27 @@ export default function HomeScreen() {
         },
 
     });
+
+    const parseMovesToDoubleColumn = (moveStr: string) => {
+        const moves = moveStr.trim().split(" ");
+        const result = [];
+
+        for (let i = 0; i < moves.length; i += 2) {
+            result.push({
+                moveNo: i / 2 + 1,
+                white: moves[i],
+                black: moves[i + 1] || "-",
+            });
+        }
+
+        // Sol blok: ilk 20 hamle, sağ blok: sonraki 20 hamle
+        const left = result.slice(0, 20);
+        const right = result.slice(20, 40); // 40 hamleye kadar gösterecek
+
+        return { left, right };
+    };
+
+    const { left, right } = parseMovesToDoubleColumn(moveStringWhite);
 
     const startPhotoFlow = async () => {
         const whiteResult = await takePhoto();
@@ -166,7 +249,7 @@ export default function HomeScreen() {
                     name: 'chess_photo.jpg',
                     type: "image/jpeg",
                 } as any);
-                const response = await fetch("http://192.168.1.161:9999/analyze-chess", { //http://192.168.1.161:9999/analyze-chess
+                const response = await fetch("http://192.168.20.117:9999/analyze-chess", { //http://192.168.1.161:9999/analyze-chess
                     method: 'POST',
                     body: formData
                 });
@@ -226,22 +309,12 @@ export default function HomeScreen() {
                 />
             </View>
             <View style={styles.titleContainer}>
-                <ThemedText type="title">Chess Simulation!</ThemedText>
+                <ThemedText type="title">Chess Simulation</ThemedText>
             </View>
             <View style={styles.stepContainer2}>
-                <Button
-                    title="Hamle Kağıtlarını Al ve Simüle Et"
-                    onPress={startPhotoFlow}
-                />
-                {/* <Button
-                    title="Go Simulate"
-                    onPress={() =>
-                        router.push({
-                            pathname: "/simulate",
-                            params: { moves: moveStringWhite },
-                        })
-                    }
-                /> */}
+                <TouchableOpacity style={styles.customButton} onPress={startPhotoFlow}>
+                    <Text style={styles.customButtonText}>Hamle Kağıtlarını Al ve Simüle Et</Text>
+                </TouchableOpacity>
                 {
                     !isLoading ?
                         <Modal
@@ -259,10 +332,9 @@ export default function HomeScreen() {
                                         value={whitePlayer}
                                         onChangeText={setWhitePlayer}
                                     />
-                                    <Button
-                                        title="Kaydet & Sonraki: Siyah'ın Hamle Kağıdı"
-                                        onPress={onWhiteModalSubmit}
-                                    />
+                                    <TouchableOpacity style={styles.customButton} onPress={onWhiteModalSubmit}>
+                                        <Text style={styles.customButtonText}>Kaydet & Sonraki: Siyah'ın Hamle Kağıdı</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </Modal> :
@@ -302,10 +374,9 @@ export default function HomeScreen() {
                                                 value={blackPlayer}
                                                 onChangeText={setBlackPlayer}
                                             />
-                                            <Button
-                                                title='Tamamla ve Simüle Et'
-                                                onPress={onBlackModalSubmit}
-                                            />
+                                            <TouchableOpacity style={styles.customButton} onPress={onBlackModalSubmit}>
+                                                <Text style={styles.customButtonText}>Tamamla ve Simüle Et</Text>
+                                            </TouchableOpacity>
                                         </>
                                     ) : null}
                                 </View>
@@ -323,9 +394,43 @@ export default function HomeScreen() {
                 }
 
             </View>
-            <View style={styles.stepContainer}>
-                <Text style={styles.detectedGameText}>Detected Game:  {moveStringWhite}</Text>
-            </View>
+            <Text>Detected Game:</Text>
+            <ScrollView style={styles.tableScroll} contentContainerStyle={styles.scrollContent}>
+                <View style={styles.tableWrapper}>
+                    <View style={styles.columnBlock}>
+                        <View style={styles.tableHeaderRow}>
+                            <Text style={styles.headerCell}>No.</Text>
+                            <Text style={styles.headerCell}>White</Text>
+                            <Text style={styles.headerCell}>Black</Text>
+                        </View>
+                        {left.map((row, index) => (
+                            <View style={styles.tableRow} key={`left-${index}`}>
+                                <Text style={styles.cell}>{row.moveNo}</Text>
+                                <Text style={styles.cell}>{row.white}</Text>
+                                <Text style={styles.cell}>{row.black}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    {
+                        right.length > 0 &&
+                        <View style={styles.columnBlock}>
+                            <View style={styles.tableHeaderRow}>
+                                <Text style={styles.headerCell}>No.</Text>
+                                <Text style={styles.headerCell}>White</Text>
+                                <Text style={styles.headerCell}>Black</Text>
+                            </View>
+                            {right.map((row, index) => (
+                                <View style={styles.tableRow} key={`right-${index}`}>
+                                    <Text style={styles.cell}>{row.moveNo + 20}</Text>
+                                    <Text style={styles.cell}>{row.white}</Text>
+                                    <Text style={styles.cell}>{row.black}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    }
+                </View>
+            </ScrollView>
+
         </View>
     );
 }
