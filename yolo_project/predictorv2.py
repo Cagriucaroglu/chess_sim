@@ -3,7 +3,7 @@ import subprocess
 import shutil
 import glob
 import json
-from main2 import process_image  # main2.py aynı klasörde olmalı
+from yolo_project.drawlinesandextractcells import process_image  # main2.py aynı klasörde olmalı
 from ultralytics import YOLO
 import numpy as np
 from PIL import Image

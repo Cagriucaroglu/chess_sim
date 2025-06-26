@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from "expo-router";
 import { useState } from 'react';
@@ -22,6 +23,7 @@ export default function HomeScreen() {
     const HEADER_HEIGHT = 619.2; // üstteki sabit yükseklikler
     const tableHeight = height - HEADER_HEIGHT;
 
+    const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 
     const styles = StyleSheet.create({
@@ -249,7 +251,7 @@ export default function HomeScreen() {
                     name: 'chess_photo.jpg',
                     type: "image/jpeg",
                 } as any);
-                const response = await fetch("http://192.168.20.117:9999/analyze-chess", { //http://192.168.1.161:9999/analyze-chess
+                const response = await fetch(`${API_URL}/analyze-chess`, { //http://192.168.1.161:9999/analyze-chess
                     method: 'POST',
                     body: formData
                 });
@@ -394,7 +396,7 @@ export default function HomeScreen() {
                 }
 
             </View>
-            <Text>Detected Game:</Text>
+            <Text>Detected Game: {API_URL}</Text>
             <ScrollView style={styles.tableScroll} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.tableWrapper}>
                     <View style={styles.columnBlock}>

@@ -3,9 +3,9 @@ import subprocess
 import shutil
 import glob
 import json
-from main2v2 import process_image_v2  # main2.py aynı klasörde olmalı
+from movedetect import process_image_v2  # main2.py aynı klasörde olmalı
 import re
-
+import uuid
 
 def load_class_map(class_file_path):
     with open(class_file_path, "r", encoding="utf-8") as f:
@@ -22,35 +22,6 @@ def parse_prediction_txt(txt_path, class_map):
             })
     return boxes
 
-def recognize_character_from_image(image_path, model_path, class_map):
-    image_name = os.path.splitext(os.path.basename(image_path))[0]
-    output_dir = f"runs/detect/predict_{image_name}"
-
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-
-    subprocess.run([
-        "yolo", "task=detect", "mode=predict",
-        f"model={model_path}",
-        f"source={image_path}",
-        "save_txt=True",
-        f"project=runs/detect",
-        f"name=predict_{image_name}",
-        "exist_ok=True",
-        "conf=0.50",
-        "iou=0.45"
-    ], stdout=subprocess.DEVNULL)
-
-    txt_path = os.path.join(output_dir, "labels", image_name + ".txt")
-    if not os.path.exists(txt_path):
-        print(f"Tahmin yok: {image_path}")
-        return ""
-
-    boxes = parse_prediction_txt(txt_path, class_map)
-    boxes.sort(key=lambda b: b["x"])
-    return "".join([box["char"] for box in boxes])
-
-
 def extract_number(filename):
     match = re.search(r"_cell(\d+)\.txt$", filename)
     return int(match.group(1)) if match else -1
@@ -61,18 +32,14 @@ def recognize_all_cells(image_path):
     for f in glob.glob("foundcells/*.png"):
         os.remove(f)
     # 2. Hücreleri kes
-    process_image_v2(image_path)
+    foundcells_dir = process_image_v2(image_path)
 
     # 3. Sınıf isimlerini yükle
     class_map = load_class_map("classes.txt")
 
-    run_name = f"batch_predict"
+    run_name = f"batch_predict{uuid.uuid4()}{uuid.uuid4()}"
     output_dir = os.path.join("runs", "detect", run_name)
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    
-    foundcells_dir = "foundcells"
-    output_dir = os.path.join("runs/detect" , run_name)
+
     predictions = []
 
     # subprocess ile toplu predict
@@ -120,11 +87,16 @@ def recognize_all_cells(image_path):
     result_json = {
         "moves": predictions
     }
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    
+    if os.path.exists(foundcells_dir):
+        shutil.rmtree(foundcells_dir)
 
     return result_json
 
 if __name__ == "__main__":
-    image_path = "games/temp.jpg"
+    image_path = "gamesfortest/temp.jpg"
     result = recognize_all_cells(image_path)
 
     print("hamleler:")
